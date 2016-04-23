@@ -1,11 +1,16 @@
 #Tic-Tac-Toe
-###Version 1.0 (A simple backend for a Tic Tac Toe game using Google Cloud Endpoints, App Engine, and Python) 
+###Version 1.0 (A simple backend for a Tic Tac Toe game using Google Cloud 
+Endpoints, App Engine, and Python) 
+####*FSND Project 4: Design a Game*
 
 ####Description:
-Tic-tac-toe is a  game for two players, X and O, who take turns marking the spaces in a 3×3 grid. The player who succeeds in placing three of their marks in a horizontal, vertical, or diagonal row wins the game. (Cited from [wiki][1])
+Tic-tac-toe is a  game for two players, X and O, who take turns marking the 
+spaces in a 3×3 grid. The player who succeeds in placing three of their marks 
+in a horizontal, vertical, or diagonal row wins the game. (Cited from [wiki][1])
 ![Example of one tic-tac-toe game, won by X](images/example.png)
 
-This particular game have two levels: easy (randomly generated moves); hard (AI player) 
+This particular game have two levels: easy (randomly generated moves); 
+hard (with AI player) 
 
 
 ####Features: 
@@ -13,8 +18,13 @@ This particular game have two levels: easy (randomly generated moves); hard (AI 
 - User Profile and history 
 
 ####Setup Instructions:
-- (todo)
-
+1.  Update the value of application in app.yaml to the app ID you have registered
+ in the App Engine admin console and would like to use to host your instance of 
+ this sample.
+1.  Run the app with the devserver using dev_appserver.py DIR, and ensure it's
+ running by visiting the API Explorer - by default localhost:8080/_ah/api/explorer.
+1.  (Optional) Generate your client library(ies) with the endpoints tool.
+ Deploy your application.
 
 ####Files included:
 - api.py: Contains endpoints and game playing logic.
@@ -73,12 +83,12 @@ This particular game have two levels: easy (randomly generated moves); hard (AI 
     - Description: Returns all Scores recorded by the provided player (unordered).
     Will raise a NotFoundException if the User does not exist.
     
- - **get_active_game_count**
-    - Path: 'games/active'
+ - **get_active_game**
+    - Path: 'games/active_games'
     - Method: GET
     - Parameters: None
     - Returns: StringMessage
-    - Description: Gets the average number of attempts remaining for all games
+    - Description: Gets the number of 
     from a previously cached memcache key.
 
 ##Models Included:

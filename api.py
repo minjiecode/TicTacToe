@@ -25,7 +25,7 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 
-MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
+MEMCACHE_ACTIVE_GAMES = 'ACTIVE_GAMES'
 
 @endpoints.api(name='guess_a_number', version='v1')
 class GuessANumberApi(remote.Service):
@@ -63,11 +63,11 @@ class GuessANumberApi(remote.Service):
             raise endpoints.BadRequestException('Maximum must be greater '
                                                 'than minimum!')
 
-        # Use a task queue to update the average attempts remaining.
+        # Use a task queue to update the active games.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
-        taskqueue.add(url='/tasks/cache_average_attempts')
-        return game.to_form('Good luck playing Guess a Number!')
+        taskqueue.add(url='/tasks/_cache_active_games')
+        return game.to_form('Good luck playing Tic-tac-toe!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
@@ -133,24 +133,21 @@ class GuessANumberApi(remote.Service):
         return ScoreForms(items=[score.to_form() for score in scores])
 
     @endpoints.method(response_message=StringMessage,
-                      path='games/average_attempts',
-                      name='get_average_attempts_remaining',
+                      path='games/active_games',
+                      name='get_active_games',
                       http_method='GET')
-    def get_average_attempts(self, request):
-        """Get the cached average moves remaining"""
-        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+    def get_active_games(self, request):
+        """Get the cached active games"""
+        return StringMessage(message=memcache.get(MEMCACHE_ACTIVE_GAMES) or '')
 
     @staticmethod
-    def _cache_average_attempts():
-        """Populates memcache with the average moves remaining of Games"""
+    def _cache_active_games():
+        """Populates memcache with the count of active games"""
         games = Game.query(Game.game_over == False).fetch()
         if games:
             count = len(games)
-            total_attempts_remaining = sum([game.attempts_remaining
-                                        for game in games])
-            average = float(total_attempts_remaining)/count
-            memcache.set(MEMCACHE_MOVES_REMAINING,
-                         'The average moves remaining is {:.2f}'.format(average))
+            memcache.set(MEMCACHE_ACTIVE_GAMES,
+                         'The number of active games is {}'.format(count))
 
 
 api = endpoints.api_server([GuessANumberApi])
