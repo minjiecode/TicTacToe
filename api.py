@@ -27,8 +27,8 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
 
 MEMCACHE_ACTIVE_GAMES = 'ACTIVE_GAMES'
 
-@endpoints.api(name='guess_a_number', version='v1')
-class GuessANumberApi(remote.Service):
+@endpoints.api(name='tic_tac_toe', version='v1')
+class TicTacToeApi(remote.Service):
     """Game API"""
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
@@ -66,7 +66,7 @@ class GuessANumberApi(remote.Service):
         # Use a task queue to update the active games.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
-        taskqueue.add(url='/tasks/_cache_active_games')
+        taskqueue.add(url='/tasks/cache_active_games')
         return game.to_form('Good luck playing Tic-tac-toe!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
@@ -147,7 +147,7 @@ class GuessANumberApi(remote.Service):
         if games:
             count = len(games)
             memcache.set(MEMCACHE_ACTIVE_GAMES,
-                         'The number of active games is {}'.format(count))
+                         'The number of active game(s) is {}'.format(count))
 
 
-api = endpoints.api_server([GuessANumberApi])
+api = endpoints.api_server([TicTacToeApi])
