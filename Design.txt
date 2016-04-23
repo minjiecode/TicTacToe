@@ -3,7 +3,8 @@ Design Desicions
 
 
 
+Notification: 
+Send reminder email to people who have unfinished game once a day. The body of the email include the link to the unfinished game.
 
-
-
+Endpoints:
 I changed get_average_attempt to get_active_games as the average attempts remaining does not make sense for the tictactoe game. After a new game is created, a task is added to the task queue to get the active game count and update/store it in the memcache. And the count can be accessed using get_active_games endpoint.
