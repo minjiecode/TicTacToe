@@ -2,7 +2,7 @@
 ###Version 1.0 (A simple backend for a Tic Tac Toe game using Google Cloud Endpoints, App Engine, and Python) 
 
 ####Description:
-Tic-tac-toe is a  game for two players, X and O, who take turns marking the spaces in a 3×3 grid. The player who succeeds in placing three of their marks in a horizontal, vertical, or diagonal row wins the game.
+Tic-tac-toe is a  game for two players, X and O, who take turns marking the spaces in a 3×3 grid. The player who succeeds in placing three of their marks in a horizontal, vertical, or diagonal row wins the game. (Cited from [wiki][1])
 ![Example of one tic-tac-toe game, won by X](images/example.png)
 
 This particular game have two levels: easy (randomly generated moves); hard (AI player) 
@@ -106,6 +106,8 @@ This particular game have two levels: easy (randomly generated moves); hard (AI 
     - Multiple ScoreForm container.
  - **StringMessage**
     - General purpose String container.
+
+ [1]: https://en.wikipedia.org/wiki/Tic-tac-toe
 
 
 
