@@ -83,13 +83,12 @@ hard (with AI player)
     - Description: Returns all Scores recorded by the provided player (unordered).
     Will raise a NotFoundException if the User does not exist.
     
- - **get_active_game**
+ - **get_active_games**
     - Path: 'games/active_games'
     - Method: GET
     - Parameters: None
     - Returns: StringMessage
-    - Description: Gets the number of 
-    from a previously cached memcache key.
+    - Description: Gets the count of active games from a previously cached memcache key.
 
 ##Models Included:
  - **User**
