@@ -1,5 +1,5 @@
 #Tic-Tac-Toe
-###Version 1.0 (A simple backend for a Tic Tac Toe game using Google Cloud 
+###Version 1.0 (A simple backend for a Tic Tac Toe game using Google Cloud\ 
 Endpoints, App Engine, and Python) 
 ####*FSND Project 4: Design a Game*
 
