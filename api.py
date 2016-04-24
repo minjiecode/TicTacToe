@@ -13,7 +13,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, GameRecord
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameRecordForms
+    ScoreForms, GameRecordForms, GameForms
 from utils import get_by_urlsafe, evaluate, parseState, add_random_move
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -25,6 +25,7 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
 GET_RANDOM_MOVE_REQUEST = endpoints.ResourceContainer(urlsafe_game_key = messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+GET_USER_GAME_REQUEST = endpoints.ResourceContainer(user_name = messages.StringField(1, required = True),)
 GET_GAME_RECORDS = endpoints.ResourceContainer(
         urlsafe_game_key = messages.StringField(1),)
 
@@ -84,6 +85,20 @@ class TicTacToeApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
+    @endpoints.method(request_message = GET_USER_GAME_REQUEST,
+                      response_message = GameForms,
+                      path = "game/user/{user_name}",
+                      name = 'get_user_games',
+                      http_method = 'GET')
+    def get_user_game(self,request):
+        """Return active games for specified user"""
+        user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                    'A User with that name does not exist!')
+        games = Game.query(Game.user == user.key)
+        active_games = games.filter(Game.game_over == False)
+        return GameForms(items = [game.to_form("Time to make a move!") for game in active_games])
 
 # - - - Moves - - - - - - - - - - - - - - - - -
 
