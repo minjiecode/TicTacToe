@@ -16,22 +16,18 @@ class User(ndb.Model):
 
 class Game(ndb.Model):
     """Game object"""
-    target = ndb.IntegerProperty(required=True)
-    attempts_allowed = ndb.IntegerProperty(required=True)
-    attempts_remaining = ndb.IntegerProperty(required=True, default=5)
+    state = ndb.StringProperty(required = True)
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
+    player = ndb.BooleanProperty(required = True) #True: Human Player; False: AIPlayer
 
     @classmethod
-    def new_game(cls, user, min, max, attempts):
+    def new_game(cls, user):
         """Creates and returns a new game"""
-        if max < min:
-            raise ValueError('Maximum must be greater than minimum')
         game = Game(user=user,
-                    target=random.choice(range(1, max + 1)),
-                    attempts_allowed=attempts,
-                    attempts_remaining=attempts,
-                    game_over=False)
+                    state = "----------",
+                    game_over= False,
+                    player = True)
         game.put()
         return game
 
@@ -40,19 +36,18 @@ class Game(ndb.Model):
         form = GameForm()
         form.urlsafe_key = self.key.urlsafe()
         form.user_name = self.user.get().name
-        form.attempts_remaining = self.attempts_remaining
         form.game_over = self.game_over
         form.message = message
+        form.state = self.state
+        form.player = self.player
         return form
 
-    def end_game(self, won=False):
-        """Ends the game - if won is True, the player won. - if won is False,
-        the player lost."""
+    def end_game(self, result):
+        """Ends the game - 3 Results("Win", "Lose", "Draw")"""
         self.game_over = True
         self.put()
         # Add the game to the score 'board'
-        score = Score(user=self.user, date=date.today(), won=won,
-                      guesses=self.attempts_allowed - self.attempts_remaining)
+        score = Score(user=self.user, date=date.today(), result = result)
         score.put()
 
 
@@ -60,42 +55,38 @@ class Score(ndb.Model):
     """Score object"""
     user = ndb.KeyProperty(required=True, kind='User')
     date = ndb.DateProperty(required=True)
-    won = ndb.BooleanProperty(required=True)
-    guesses = ndb.IntegerProperty(required=True)
+    result = ndb.StringProperty(required=True)
 
     def to_form(self):
-        return ScoreForm(user_name=self.user.get().name, won=self.won,
-                         date=str(self.date), guesses=self.guesses)
+        return ScoreForm(user_name=self.user.get().name, result=self.result,
+                         date=str(self.date))
 
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
-    attempts_remaining = messages.IntegerField(2, required=True)
+    state = messages.StringField(2,required = True)
     game_over = messages.BooleanField(3, required=True)
     message = messages.StringField(4, required=True)
     user_name = messages.StringField(5, required=True)
+    player = messages.BooleanField(6,required = True)
 
 
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
-    min = messages.IntegerField(2, default=1)
-    max = messages.IntegerField(3, default=10)
-    attempts = messages.IntegerField(4, default=5)
 
 
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
-    guess = messages.IntegerField(1, required=True)
+    move = messages.IntegerField(1, required=True)
 
 
 class ScoreForm(messages.Message):
     """ScoreForm for outbound Score information"""
     user_name = messages.StringField(1, required=True)
     date = messages.StringField(2, required=True)
-    won = messages.BooleanField(3, required=True)
-    guesses = messages.IntegerField(4, required=True)
+    result = messages.StringField(3, required=True)
 
 
 class ScoreForms(messages.Message):

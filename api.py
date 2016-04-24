@@ -14,7 +14,7 @@ from google.appengine.api import taskqueue
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
     ScoreForms
-from utils import get_by_urlsafe
+from utils import get_by_urlsafe, evaluate, parseState, add_random_move
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
@@ -22,6 +22,7 @@ GET_GAME_REQUEST = endpoints.ResourceContainer(
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     MakeMoveForm,
     urlsafe_game_key=messages.StringField(1),)
+GET_RANDOM_MOVE_REQUEST = endpoints.ResourceContainer(urlsafe_game_key = messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 
@@ -30,6 +31,8 @@ MEMCACHE_ACTIVE_GAMES = 'ACTIVE_GAMES'
 @endpoints.api(name='tic_tac_toe', version='v1')
 class TicTacToeApi(remote.Service):
     """Game API"""
+    
+
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
                       path='user',
@@ -56,13 +59,7 @@ class TicTacToeApi(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
-        try:
-            game = Game.new_game(user.key, request.min,
-                                 request.max, request.attempts)
-        except ValueError:
-            raise endpoints.BadRequestException('Maximum must be greater '
-                                                'than minimum!')
-
+        game = Game.new_game(user.key)
         # Use a task queue to update the active games.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
@@ -78,9 +75,13 @@ class TicTacToeApi(remote.Service):
         """Return the current game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            return game.to_form('Time to make a move!')
+            if game.player:
+                return game.to_form('Time to make a move!')
+            else:
+                return game.to_form('This is not your turn.')
         else:
             raise endpoints.NotFoundException('Game not found!')
+
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
@@ -88,27 +89,93 @@ class TicTacToeApi(remote.Service):
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
-        """Makes a move. Returns a game state with message"""
+        """Makes a move. Returns a game state with message. """
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        #check if the game is over, update the score list if needed
+        if evaluate(game.state):
+            outcome = evaluate(game.state)
+            if outcome == "O":
+                msg = "Win"
+            else:
+                msg = "Lose"
+            game.end_game(msg)
+            game.game_over = True
+            game.put()
+        else:
+            if "-" not in game.state:
+              game.end_game("Draw")
+              game.game_over = True
         if game.game_over:
             return game.to_form('Game already over!')
-
-        game.attempts_remaining -= 1
-        if request.guess == game.target:
-            game.end_game(True)
-            return game.to_form('You win!')
-
-        if request.guess < game.target:
-            msg = 'Too low!'
-        else:
-            msg = 'Too high!'
-
-        if game.attempts_remaining < 1:
-            game.end_game(False)
-            return game.to_form(msg + ' Game over!')
-        else:
+        #check if it is player's turn
+        if game.player:
+            if request.move not in range(0,9):
+              raise endpoints.BadRequestException('Invalid Move')
+            if game.state[request.move] != "-":
+              raise endpoints.BadRequestException('Invalid Move')
+            #update the board state
+            board = list(game.state)
+            board[request.move] = "O" 
+            game.state = ''.join(board)
+            #evaluate the result
+            if evaluate(game.state):
+                game.end_game("Win")
+                return game.to_form('You win!')
+            if "-" not in game.state:
+                game.end_game("Draw")
+                return game.to_form('This is a Draw.')
+            msg = "AI's turn"
+            game.player = False
             game.put()
             return game.to_form(msg)
+        else:
+            msg = "This is not your turn"
+            return game.to_form(msg)
+
+    @endpoints.method(request_message = GET_RANDOM_MOVE_REQUEST,
+                      response_message=GameForm,
+                      path = 'game/{urlsafe_game_key}/random',
+                      name = "get_random_move",
+                      http_method = "PUT")
+    def get_random_move(self,request):
+        """Get Random Generated Moves"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        #check if the game is over, update the score list if needed
+        if evaluate(game.state):
+            outcome = evaluate(game.state)
+            if outcome == "O":
+                msg = "Win"
+                game.end_game(msg)
+            else:
+                msg = "Lose"
+                game.end_game(msg)
+            game.game_over = True
+            game.put()
+        else:
+            if "-" not in game.state:
+              game.end_game("Draw")
+              game.game_over = True
+        if game.game_over:
+            return game.to_form('Game already over!')
+        #check if it is ai's turn
+        if game.player:
+            msg = "Waiting for your move."
+            return game.to_form(msg)
+        else:
+            #update board with a random move
+            game.state = add_random_move(game.state)
+            #evaluate the result
+            if evaluate(game.state):
+                game.end_game("Lose")
+                return game.to_form('You Lose!')
+            if "-" not in game.state:
+                game.end_game("Draw")
+                return game.to_form('This is a Draw.')
+            msg = "Your turn"
+            game.player = True
+            game.put()
+            return game.to_form(msg)
+
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
