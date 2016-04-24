@@ -11,20 +11,22 @@ from protorpc import remote, messages
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 
-from models import User, Game, Score
+from models import User, Game, Score, GameRecord
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms
+    ScoreForms, GameRecordForms
 from utils import get_by_urlsafe, evaluate, parseState, add_random_move
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
-    MakeMoveForm,
-    urlsafe_game_key=messages.StringField(1),)
+        MakeMoveForm,
+        urlsafe_game_key=messages.StringField(1),)
 GET_RANDOM_MOVE_REQUEST = endpoints.ResourceContainer(urlsafe_game_key = messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+GET_GAME_RECORDS = endpoints.ResourceContainer(
+        urlsafe_game_key = messages.StringField(1),)
 
 MEMCACHE_ACTIVE_GAMES = 'ACTIVE_GAMES'
 
@@ -83,6 +85,8 @@ class TicTacToeApi(remote.Service):
             raise endpoints.NotFoundException('Game not found!')
 
 
+# - - - Moves - - - - - - - - - - - - - - - - -
+
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}',
@@ -117,6 +121,8 @@ class TicTacToeApi(remote.Service):
             board = list(game.state)
             board[request.move] = "O" 
             game.state = ''.join(board)
+            #update movecount
+            game.movecount += 1
             #evaluate the result
             if evaluate(game.state):
                 game.end_game("Win")
@@ -125,6 +131,7 @@ class TicTacToeApi(remote.Service):
                 game.end_game("Draw")
                 return game.to_form('This is a Draw.')
             msg = "AI's turn"
+            game.record()
             game.player = False
             game.put()
             return game.to_form(msg)
@@ -164,6 +171,8 @@ class TicTacToeApi(remote.Service):
         else:
             #update board with a random move
             game.state = add_random_move(game.state)
+            #update movecount
+            game.movecount += 1
             #evaluate the result
             if evaluate(game.state):
                 game.end_game("Lose")
@@ -172,9 +181,22 @@ class TicTacToeApi(remote.Service):
                 game.end_game("Draw")
                 return game.to_form('This is a Draw.')
             msg = "Your turn"
+            game.record()
             game.player = True
             game.put()
             return game.to_form(msg)
+
+    @endpoints.method(request_message = GET_GAME_RECORDS,
+                      response_message = GameRecordForms,
+                      path = 'game/{urlsafe_game_key}/record',
+                      name = 'get_game_records',
+                      http_method = 'GET'
+                      )
+    def get_game_records(self,request):
+        """Return moves for specified game"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        return GameRecordForms(items = [record.to_form() for record in \
+           GameRecord.query(GameRecord.game == game.key)])
 
 
     @endpoints.method(response_message=ScoreForms,
