@@ -8,7 +8,7 @@ import webapp2
 from google.appengine.api import mail, app_identity
 from api import TicTacToeApi
 
-from models import User, Game
+from models import User, Game, Score
 
 
 class SendReminderEmail(webapp2.RequestHandler):
@@ -31,7 +31,7 @@ class SendReminderEmail(webapp2.RequestHandler):
                            user.email,
                            subject,
                            body)
-
+            
 
 class UpdateActiveGames(webapp2.RequestHandler):
     def post(self):
@@ -40,16 +40,8 @@ class UpdateActiveGames(webapp2.RequestHandler):
         self.response.set_status(204)
 
 
-class UpdateRanking(webapp2.RequestHandler):
-    def get(self):
-        """Update user ranking.
-        Called every 5 minutes using a cron job"""
-        TicTacToeApi._update_ranking()
-        self.response.set_status(204)
-
 
 app = webapp2.WSGIApplication([
     ('/crons/send_reminder', SendReminderEmail),
-    ('/crons/update_ranking', UpdateRanking),
     ('/tasks/cache_active_games', UpdateActiveGames),
 ], debug=True)

@@ -50,8 +50,7 @@ hard (with AI player)
     - Returns: GameForm with initial game state.
     - Description: Creates a new Game. user_name provided must correspond to an
     existing user - will raise a NotFoundException if not. Min must be less than
-    max. Also adds a task to a task queue to update the average moves remaining
-    for active games.
+    max. Also adds a task to a task queue to update the total count for active games. 
      
  - **get_game**
     - Path: 'game/{urlsafe_game_key}'
@@ -59,15 +58,43 @@ hard (with AI player)
     - Parameters: urlsafe_game_key
     - Returns: GameForm with current game state.
     - Description: Returns the current state of a game.
-    
+ 
+
+ - **get_user_game**
+    - Path: 'game/{user_name}/active'
+    - Method: GET
+    - Parameters: user_name
+    - Returns: GameForms with all active games from the user.
+    - Description: Returns all active games from the user.
+
+ - **cancel_game**
+    - Path: 'game/{urlsafe_game_key}/cancel',
+    - Method: DELETE
+    - Parameters: urlsafe_game_key
+    - Returns: StringMessage
+    - Description: Cancel unfinished game.
+
  - **make_move**
     - Path: 'game/{urlsafe_game_key}'
     - Method: PUT
-    - Parameters: urlsafe_game_key, guess
+    - Parameters: urlsafe_game_key, move
     - Returns: GameForm with new game state.
-    - Description: Accepts a 'guess' and returns the updated state of the game.
-    If this causes a game to end, a corresponding Score entity will be created.
-    
+    - Description: Send and record the move of the human player.
+
+ - **get_random_move**
+    - Path: 'game/{urlsafe_game_key}/random'
+    - Method: PUT
+    - Parameters: urlsafe_game_key
+    - Returns: GameForm with new game state.
+    - Description: Generate and record the move of the "AI" player.
+ 
+ - **get_game_history**
+    - Path: 'game/{urlsafe_game_key}/history'
+    - Method: GET
+    - Parameters; urlsafe_game_key
+    - Returns: GameHistoryForms with game move record.
+    - Description: Show the move history of different human and "AI" player took in chronical order.
+
  - **get_scores**
     - Path: 'scores'
     - Method: GET
@@ -90,6 +117,14 @@ hard (with AI player)
     - Returns: StringMessage
     - Description: Gets the count of active games from a previously cached memcache key.
 
+- **get_user_rankings**
+    - Path: 'ranking'
+    - Method: GET
+    - Parameters: None
+    - Returns: UserForm ordered by performance index
+    - Description: Show the ranking of users
+
+
 ##Models Included:
  - **User**
     - Stores unique user_name and (optional) email address.
@@ -99,6 +134,9 @@ hard (with AI player)
     
  - **Score**
     - Records completed games. Associated with Users model via KeyProperty.
+
+ - **GameHistory**
+    - Records every move user/AI player made. Associated with Games via KeyProperty.
     
 ##Forms Included:
  - **GameForm**
@@ -108,6 +146,10 @@ hard (with AI player)
     - Used to create a new game (user_name, min, max, attempts)
  - **MakeMoveForm**
     - Inbound make move form (guess).
+ - **GameHistoryForm**
+    - Outbound GameHistory Infomation.
+ - **GameHistoryForms**
+    - Multiple GameHistoryForm container.
  - **ScoreForm**
     - Representation of a completed game's Score (user_name, date, won flag,
     guesses).
@@ -115,6 +157,10 @@ hard (with AI player)
     - Multiple ScoreForm container.
  - **StringMessage**
     - General purpose String container.
+ - **UserForm**
+    - Outbound User Information for ranking display.
+ - **UserForms**
+    - Multiple UserForm container.
 
  [1]: https://en.wikipedia.org/wiki/Tic-tac-toe
 

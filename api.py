@@ -11,9 +11,9 @@ from protorpc import remote, messages
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 
-from models import User, Game, Score, GameRecord
+from models import User, Game, Score, GameHistory
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameRecordForms, GameForms, UserForms
+    ScoreForms, GameHistoryForms, GameForms, UserForms
 from utils import get_by_urlsafe, evaluate, parseState, add_random_move
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -26,16 +26,12 @@ GET_RANDOM_MOVE_REQUEST = endpoints.ResourceContainer(urlsafe_game_key = message
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 GET_USER_GAME_REQUEST = endpoints.ResourceContainer(user_name = messages.StringField(1, required = True),)
-GET_GAME_RECORDS = endpoints.ResourceContainer(
-        urlsafe_game_key = messages.StringField(1),)
 
 MEMCACHE_ACTIVE_GAMES = 'ACTIVE_GAMES'
 
 @endpoints.api(name='tic_tac_toe', version='v1')
 class TicTacToeApi(remote.Service):
     """Game API"""
-    
-
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
                       path='user',
@@ -87,7 +83,7 @@ class TicTacToeApi(remote.Service):
 
     @endpoints.method(request_message = GET_USER_GAME_REQUEST,
                       response_message = GameForms,
-                      path = "game/user/{user_name}",
+                      path = "game/{user_name}/active",
                       name = 'get_user_games',
                       http_method = 'GET')
     def get_user_game(self,request):
@@ -103,7 +99,7 @@ class TicTacToeApi(remote.Service):
 
     @endpoints.method(request_message = GET_GAME_REQUEST,
                        response_message = StringMessage,
-                       path = "game/{urlsafe_game_key}/delete",
+                       path = "game/{urlsafe_game_key}/cancel",
                        name = 'cancel_game',
                        http_method = 'DELETE')
     def cancel_game(self,request):
@@ -170,7 +166,7 @@ class TicTacToeApi(remote.Service):
                 game.end_game("Draw")
                 return game.to_form('This is a Draw.')
             msg = "AI's turn"
-            game.record()
+            game.history()
             game.player = False
             game.put()
             return game.to_form(msg)
@@ -220,24 +216,24 @@ class TicTacToeApi(remote.Service):
                 game.end_game("Draw")
                 return game.to_form('This is a Draw.')
             msg = "Your turn"
-            game.record()
+            game.history()
             game.player = True
             game.put()
             return game.to_form(msg)
 
 # -------- Queries ------------------
 
-    @endpoints.method(request_message = GET_GAME_RECORDS,
-                      response_message = GameRecordForms,
-                      path = 'game/{urlsafe_game_key}/record',
-                      name = 'get_game_records',
+    @endpoints.method(request_message = GET_GAME_REQUEST,
+                      response_message = GameHistoryForms,
+                      path = 'game/{urlsafe_game_key}/history',
+                      name = 'get_game_history',
                       http_method = 'GET'
                       )
-    def get_game_records(self,request):
+    def get_game_history(self,request):
         """Return moves for specified game"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
-        return GameRecordForms(items = [record.to_form() for record in \
-           GameRecord.query(GameRecord.game == game.key).order(GameRecord.movecount)])
+        return GameHistoryForms(items = [record.to_form() for record in \
+           GameHistory.query(GameHistory.game == game.key).order(GameHistory.movecount)])
 
 
     @endpoints.method(response_message=ScoreForms,
@@ -277,11 +273,6 @@ class TicTacToeApi(remote.Service):
                       http_method = 'GET')
     def get_user_rankings(self, request):
         """Get user rankings"""
-        return UserForms(items=[user.to_form() for user in User.query().order(-User.rankingscore)])
-
-
-    @staticmethod
-    def _update_ranking():
         users = User.query()
         for user in users:
             games = Score.query(Score.user == user.key)
@@ -292,6 +283,8 @@ class TicTacToeApi(remote.Service):
             final_score = 5*len(win) + 3*len(win)+ 1*len(lose)
             user.rankingscore = final_score
             user.put()
+        return UserForms(items=[user.to_form() for user in User.query().order(-User.rankingscore)])
+
 
     @staticmethod
     def _cache_active_games():

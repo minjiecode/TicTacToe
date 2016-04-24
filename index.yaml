@@ -15,6 +15,11 @@ indexes:
   - name: game_over
   - name: user
 
+- kind: GameHistory
+  properties:
+  - name: game
+  - name: movecount
+
 - kind: GameRecord
   properties:
   - name: game

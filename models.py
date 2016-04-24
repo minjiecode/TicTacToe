@@ -63,13 +63,13 @@ class Game(ndb.Model):
         score = Score(user=self.user, date=date.today(), result = result)
 
 
-    def record(self):
+    def history(self):
         if self.player:
             player = self.user.get().name
         else:
             player = "AIPlayer"
-        record = GameRecord(game = self.key, state = self.state, player = player, movecount = self.movecount)
-        record.put()
+        history = GameHistory(game = self.key, state = self.state, player = player, movecount = self.movecount)
+        history.put()
 
 
 class Score(ndb.Model):
@@ -82,7 +82,7 @@ class Score(ndb.Model):
         return ScoreForm(user_name=self.user.get().name, result=self.result,
                          date=str(self.date))
 
-class GameRecord(ndb.Model):
+class GameHistory(ndb.Model):
     """History for each game"""
     state = ndb.StringProperty(required = True)
     player = ndb.StringProperty()
@@ -90,7 +90,7 @@ class GameRecord(ndb.Model):
     movecount = ndb.IntegerProperty(required = True)
 
     def to_form(self):
-        return GameRecordForm(movecount = self.movecount, player = self.player, state = self.state)
+        return GameHistoryForm(movecount = self.movecount, player = self.player, state = self.state)
 
 
 class GameForm(messages.Message):
@@ -118,15 +118,15 @@ class MakeMoveForm(messages.Message):
     move = messages.IntegerField(1, required=True)
 
 
-class GameRecordForm(messages.Message):
-    """GameRecordForm for outbound move record information"""
+class GameHistoryForm(messages.Message):
+    """GameHistoryForm for outbound History information"""
     player = messages.StringField(1)
     state = messages.StringField(2,required = True)
     movecount = messages.IntegerField(3)
 
-class GameRecordForms(messages.Message):
-    """Return multiple GameRecordForms"""
-    items = messages.MessageField(GameRecordForm,1,repeated = True)
+class GameHistoryForms(messages.Message):
+    """Return multiple GameHistoryForms"""
+    items = messages.MessageField(GameHistoryForm,1,repeated = True)
 
 
 class ScoreForm(messages.Message):

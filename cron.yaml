@@ -3,7 +3,4 @@ cron:
   url: /crons/send_reminder
   schedule: every 24 hours
 
-- description: Update the user ranking every hour
-  url: /crons/update_ranking
-  schedule: every 5 minutes
 
