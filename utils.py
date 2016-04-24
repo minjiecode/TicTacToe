@@ -77,3 +77,5 @@ def add_random_move(state):
     result[random_index] = 'X'
 
     return ''.join(result)
+
+

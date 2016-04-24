@@ -14,7 +14,7 @@ from models import User, Game
 class SendReminderEmail(webapp2.RequestHandler):
     def get(self):
         """Send a reminder email to each User with an email about games.
-        Called every hour using a cron job"""
+        Called every day using a cron job"""
         app_id = app_identity.get_application_id()
         games = Game.query(Game.game_over == False)
         for game in games:
@@ -40,7 +40,16 @@ class UpdateActiveGames(webapp2.RequestHandler):
         self.response.set_status(204)
 
 
+class UpdateRanking(webapp2.RequestHandler):
+    def get(self):
+        """Update user ranking.
+        Called every 5 minutes using a cron job"""
+        TicTacToeApi._update_ranking()
+        self.response.set_status(204)
+
+
 app = webapp2.WSGIApplication([
     ('/crons/send_reminder', SendReminderEmail),
+    ('/crons/update_ranking', UpdateRanking),
     ('/tasks/cache_active_games', UpdateActiveGames),
 ], debug=True)

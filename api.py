@@ -13,7 +13,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, GameRecord
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameRecordForms, GameForms
+    ScoreForms, GameRecordForms, GameForms, UserForms
 from utils import get_by_urlsafe, evaluate, parseState, add_random_move
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -46,7 +46,7 @@ class TicTacToeApi(remote.Service):
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                     'A User with that name already exists!')
-        user = User(name=request.user_name, email=request.email)
+        user = User(name=request.user_name, email=request.email, rankingscore = 0)
         user.put()
         return StringMessage(message='User {} created!'.format(
                 request.user_name))
@@ -99,6 +99,30 @@ class TicTacToeApi(remote.Service):
         games = Game.query(Game.user == user.key)
         active_games = games.filter(Game.game_over == False)
         return GameForms(items = [game.to_form("Time to make a move!") for game in active_games])
+
+
+    @endpoints.method(request_message = GET_GAME_REQUEST,
+                       response_message = StringMessage,
+                       path = "game/{urlsafe_game_key}/delete",
+                       name = 'cancel_game',
+                       http_method = 'DELETE')
+    def cancel_game(self,request):
+        """Cancel unfinished game"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+            if game.game_over:
+                return Message(message = "Completed Game cannot be deleted.")
+            else:
+                try:
+                    game.key.delete()
+                except Exception:
+                    raise endpoints.InternalServerErrorException(
+                        'Error in cencelling the game')
+            return Message(message = "Game Deleted")
+        else:
+            raise endpoints.NotFoundException('Game not found!')
+
+
 
 # - - - Moves - - - - - - - - - - - - - - - - -
 
@@ -201,6 +225,8 @@ class TicTacToeApi(remote.Service):
             game.put()
             return game.to_form(msg)
 
+# -------- Queries ------------------
+
     @endpoints.method(request_message = GET_GAME_RECORDS,
                       response_message = GameRecordForms,
                       path = 'game/{urlsafe_game_key}/record',
@@ -211,7 +237,7 @@ class TicTacToeApi(remote.Service):
         """Return moves for specified game"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         return GameRecordForms(items = [record.to_form() for record in \
-           GameRecord.query(GameRecord.game == game.key)])
+           GameRecord.query(GameRecord.game == game.key).order(GameRecord.movecount)])
 
 
     @endpoints.method(response_message=ScoreForms,
@@ -243,6 +269,29 @@ class TicTacToeApi(remote.Service):
     def get_active_games(self, request):
         """Get the cached active games"""
         return StringMessage(message=memcache.get(MEMCACHE_ACTIVE_GAMES) or '')
+
+
+    @endpoints.method(response_message = UserForms,
+                      path = 'ranking',
+                      name = 'get_ranking',
+                      http_method = 'GET')
+    def get_user_rankings(self, request):
+        """Get user rankings"""
+        return UserForms(items=[user.to_form() for user in User.query().order(-User.rankingscore)])
+
+
+    @staticmethod
+    def _update_ranking():
+        users = User.query()
+        for user in users:
+            games = Score.query(Score.user == user.key)
+            win = Score.query().filter(Score.result == 'Win').fetch()
+            draw = Score.query().filter(Score.result == 'Draw').fetch()
+            lose = Score.query().filter(Score.result == "Lose").fetch()
+            # The final score is base on both performance and participation.
+            final_score = 5*len(win) + 3*len(win)+ 1*len(lose)
+            user.rankingscore = final_score
+            user.put()
 
     @staticmethod
     def _cache_active_games():

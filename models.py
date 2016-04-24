@@ -8,11 +8,21 @@ from protorpc import messages
 from google.appengine.ext import ndb
 
 
+
+
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     email =ndb.StringProperty()
+    rankingscore = ndb.IntegerProperty(required = True)
 
+    def to_form(self):
+        """Returns User Performance information"""
+        form = UserForm()
+        form.user_name = self.name
+        form.rankingscore = self.rankingscore
+        return form
+        
 
 class Game(ndb.Model):
     """Game object"""
@@ -26,7 +36,7 @@ class Game(ndb.Model):
     def new_game(cls, user):
         """Creates and returns a new game"""
         game = Game(user=user,
-                    state = "----------",
+                    state = "---------",
                     game_over= False,
                     player = True,
                     movecount = 0)
@@ -51,7 +61,7 @@ class Game(ndb.Model):
         self.put()
         # Add the game to the score 'board'
         score = Score(user=self.user, date=date.today(), result = result)
-        score.put()
+
 
     def record(self):
         if self.player:
@@ -81,7 +91,6 @@ class GameRecord(ndb.Model):
 
     def to_form(self):
         return GameRecordForm(movecount = self.movecount, player = self.player, state = self.state)
-
 
 
 class GameForm(messages.Message):
@@ -135,3 +144,13 @@ class ScoreForms(messages.Message):
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
+
+class UserForm(messages.Message):
+    """UserForm for outbound User Information"""
+    user_name = messages.StringField(1,required = True)
+    rankingscore = messages.IntegerField(2, required = True)
+
+class UserForms(messages.Message):
+    """Return multiple UserForms"""
+    items = messages.MessageField(UserForm,1, repeated = True)
+
