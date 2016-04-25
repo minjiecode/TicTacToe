@@ -9,13 +9,7 @@ spaces in a 3×3 grid. The player who succeeds in placing three of their marks
 in a horizontal, vertical, or diagonal row wins the game. (Cited from [wiki][1])
 ![Example of one tic-tac-toe game, won by X](images/example.png)
 
-This particular game have two levels: easy (randomly generated moves); 
-hard (with AI player) 
-
-
-####Features: 
-- Two Levels (AI Player is to be implemented using Minimax algorithm)
-- User Profile and history 
+This version 1.0 is designed for one human player to play with the psuedo AI player. 
 
 ####Setup Instructions:
 1.  Update the value of application in app.yaml to the app ID you have registered
