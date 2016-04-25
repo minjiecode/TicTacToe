@@ -62,15 +62,10 @@ def evaluate(state):
     return None
 
 def add_random_move(state):
-    """Adds a random 'X' to a tictactoe board.
-    Args:
-        board_state: String; contains only '-', 'X', and 'O' characters.
-    Returns:
-        A new board with one of the '-' characters converted into an 'X';
-        this simulates an artificial intelligence making a move.
+    """
+    Adds a random 'X' to a tictactoe board to simulates an AI player.
     """
     result = list(state)  # Need a mutable object
-
     free_indices = [match.start()
                     for match in re.finditer('-', state)]
     random_index = random.choice(free_indices)

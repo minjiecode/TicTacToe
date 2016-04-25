@@ -1,7 +1,13 @@
 Design Desicions
 
 
-I used integer to represent the nine positions in the gameboard. 
+In this project I chose to implement the two player game Tic Tac Toe. 
+The version I submitted is designed for one human player to play against the 
+psuedo AI Player.  
+
+The time that I spend the most is on how to represent the game state. Intuitively,
+as there are 9 spaces in the game board, I thought to use a set containing the 
+numbers to represent moves (shown below).In this way the winner is the first player 
 
 0|1|2
 - - -
@@ -9,21 +15,46 @@ I used integer to represent the nine positions in the gameboard.
 - - -
 6|7|8
 
-Winning Patterns: (0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)
+whose moves contains subset of winning patterns: 
+(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)
 
-Use String: 
+However, as the message class does not have a specific field for list/set, 
+I thought I should encode the set into strings. 
+
+And then it occurred to me that I can just use  the simple string to represent the game state, 
+for example, "-O-X-----". Here the "-" represent the blank position, "O" represents the human player, 
+and "X" represents the AI Player. 
+
+This solves a lot of problem, and it also gave a better visual feedback later when 
+I was working on the endpoint methods.
+
+I have also did some research in implementing the AI player using the minimax algorithm,
+however, as it eliminate the chance for human player to win, I decided not to include it
+in this version.
 
 
-Player "O"
-AI Player "X"
-Blank "-"
+Endpoints:
+
+Most of the required endpoints are quite straight forward, but I did spend some time on the implementation
+of the get_user_rankings endpoints. In the end, I chose to put additional property(rankingscore) 
+in the User model representing their performance, which is calculated base on their finished game result 
+as well as their activity level (thenumber of games that they participated).
+And this number is updated when the get_user_rankings is called for simplicity in implementation. 
+
+In addition, I also added movecount to the Game model and used it to order the game history. And this property can 
+also be used in the ranking algorithm.   
+
+Besides, I also changed get_average_attempt to get_active_games because the average attempts remaining 
+does not make sense for the tictactoe game. After a new game is created, a task is added to the task queue to 
+get the active game count and update/store it in the memcache. 
+And the count can be accessed using get_active_games endpoint.
 
 
 Notification: 
-Send reminder email to people who have unfinished game once a day. The body of the email include the link to the unfinished game.
+I decided to send reminder email to people who have unfinished game once a day. And the body of 
+the email include the link to the unfinished game.
 
-Endpoints:
-I changed get_average_attempt to get_active_games as the average attempts remaining does not make sense for the tictactoe game. After a new game is created, a task is added to the task queue to get the active game count and update/store it in the memcache. And the count can be accessed using get_active_games endpoint.
-
-
-get move record for a specified game.
+The next step:
+The submitted version is only the backend for the Tictactoe game. 
+I plan to finish the game web front-end and implement the Minimax algorithm for the 
+AI Player in future. 
